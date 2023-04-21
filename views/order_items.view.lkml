@@ -1,11 +1,64 @@
 # The name of this view in Looker is "Order Items"
 view: order_items {
+
+  #extends: [common_datetype_range_filter]
   # The sql_table_name parameter indicates the underlying database table
   # to be used for all fields in this view.
-  sql_table_name: demo_db.order_items ;;
-  drill_fields: [id]
+ # sql_table_name: demo_db.order_items ;;
+  #drill_fields: [id]
   # This primary key is the unique key for this table in the underlying database.
   # You need to define a primary key in a view in order to join to other views.
+#   derived_table: {
+#     sql:
+# WITH
+#         orders_info AS (
+#         SELECT
+#           order_items.phone,
+#           order_items.sale_price,
+#           order_items.inventory_item_id,
+
+#           order_items.returned_date
+#         FROM (
+#           SELECT
+#             sale_price,
+#             phone
+#           FROM
+#             demo_db.order_items`) AS order_items
+#         CROSS JOIN (
+#           SELECT
+#             returned_date,
+#             timestamp(format_timestamp('%F %X', date, 'Japan')) as returned_time
+#           FROM
+#             demo_db.order_items`
+#           WHERE
+#             {% condition common_datetype_range_filter %} date {% endcondition %}
+#         ) AS day
+
+  derived_table: {
+    sql:
+    WITH
+    orders_info AS (
+    SELECT
+    order_items.phone,
+    order_items.sale_price,
+    order_items.inventory_item_id,
+    order_items.returned_date
+    FROM (
+    SELECT
+    sale_price,
+    phone
+    FROM
+    demo_db.order_items` AS order_items
+    WHERE
+    returned_date >= DATE_ADD({% date_start common_datetype_range_filter %}, INTERVAL -1 DAY), true)
+    or returned_date <= {% date_start common_datetype_range_filter %}
+     SELECT *;;
+    }
+
+    filter: common_datetype_range_filter {
+    type: date
+    datatype: date
+  }
 
   dimension: id {
     primary_key: yes
@@ -77,6 +130,6 @@ view: order_items {
 
   measure: count {
     type: count
-    drill_fields: [id, orders.id, inventory_items.id]
+    drill_fields: [ orders.id, inventory_items.id]
   }
 }
